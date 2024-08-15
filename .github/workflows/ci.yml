@@ -4,67 +4,67 @@ on:
   push:
     branches:
       - main
-    pull_request:
-      branches:
-        - main
+  pull_request:
+    branches:
+      - main
 
-      jobs:
-        build:
-          runs-on: ubuntu-latest
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-          steps:
-            - name: Checkout code
-              uses: actions/checkout@v2
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-            - name: Set up Python 3.8
-              uses: actions/setup-python@v2
-              with:
-                python-version: 3.8
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
 
-            - name: Install dependencies
-              run: |
-                echo "Installing Python dependencies..."
-                python -m pip install --upgrade pip
-                pip install -r requirements.txt
+    - name: Install dependencies
+      run: |
+        echo "Installing Python dependencies..."
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-            - name: Run Unit Tests
-              run: |
-                echo "Running unit tests..."
-                timeout 10m pytest --maxfail=5 --disable-warnings
+    - name: Run Unit Tests
+      run: |
+        echo "Running unit tests..."
+        timeout 10m pytest --maxfail=5 --disable-warnings
 
-            - name: Build Docker Image
-              run: |
-                echo "Building Docker image..."
-                docker build -t my_web_app:latest .
+    - name: Build Docker Image
+      run: |
+        echo "Building Docker image..."
+        docker build -t my_web_app:latest .
 
-            - name: Log in to Docker Hub
-              env:
-                DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-                DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-                run: |
-                  echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - name: Log in to Docker Hub
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-            - name: Push Docker Image
-              run: |
-                echo "Pushing Docker image..."
-                docker tag my_web_app:latest ${{ secrets.DOCKER_USERNAME }}/my_web_app:latest
-                docker push ${{ secrets.DOCKER_USERNAME }}/my_web_app:latest
+    - name: Push Docker Image
+      run: |
+        echo "Pushing Docker image..."
+        docker tag my_web_app:latest ${{ secrets.DOCKER_USERNAME }}/my_web_app:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/my_web_app:latest
 
-            - name: Deploy to Kubernetes
-              run: |
-                echo "Deploying to Kubernetes..."
-                kubectl apply -f k8s/deployment.yml
-                kubectl apply -f k8s/service.yml
+    - name: Deploy to Kubernetes
+      run: |
+        echo "Deploying to Kubernetes..."
+        kubectl apply -f k8s/deployment.yml
+        kubectl apply -f k8s/service.yml
 
 
-              notify:
-                runs-on: ubuntu-latest
-                needs: build
+  notify:
+    runs-on: ubuntu-latest
+    needs: build
 
-                steps:
-                  - name: Notify via Slack
-                    env:
-                      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-                      run: |
-                        curl -X POST -H 'Content-type: application/json' --data '{"text":"CI/CD Pipeline completed successfully."}' $SLACK_WEBHOOK_URL
+    steps:
+    - name: Notify via Slack
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        curl -X POST -H 'Content-type: application/json' --data '{"text":"CI/CD Pipeline completed successfully."}' $SLACK_WEBHOOK_URL
 
